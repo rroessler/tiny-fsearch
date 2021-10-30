@@ -1,7 +1,7 @@
 {
     "name": "tiny-fsearch",
     "version": "0.2.0",
-    "description": "",
+    "description": "A small and versatile find-in-file/source library.",
     "main": "index.js",
     "scripts": {
         "build": "node-gyp build",
@@ -12,7 +12,14 @@
     "author": "rroesslerio",
     "license": "MIT",
     "devDependencies": {
-        "@types/node": "^16.11.6",
-        "node-addon-api": "^4.2.0"
+        "@types/node": "^16.11.6"
+    },
+    "dependencies": {
+        "node-addon-api": "^4.2.0",
+        "node-gyp": "^8.3.0"
+    },
+    "repository": {
+        "type": "git",
+        "url": "git+https://github.com/rroessler/tiny-fsearch.git"
     }
 }
