@@ -9,6 +9,9 @@ const _defaultOptions = {
     zeroIndexing: false
 };
 
+/// RegExp verifier function.
+const assertRegExpString = (input) => new RegExp(input);
+
 const fsearch = (searchable, files, opts = {}) => {
     if (searchable instanceof RegExp) {
         searchable = searchable.source;
@@ -16,6 +19,9 @@ const fsearch = (searchable, files, opts = {}) => {
     }
 
     if (typeof files === 'string') files = [files];
+
+    // if an error occurs creating the RegExp object, then is emitted
+    if (opts.isRegex) assertRegExpString(searchable);
 
     opts = Object.assign(_defaultOptions, opts, { input: searchable });
     return _binding_raw._fsearch_impl(files, opts);
@@ -28,6 +34,10 @@ const fquery = (searchable, source, opts = {}) => {
     }
 
     if (typeof source === 'string') source = Buffer.from(source);
+
+    // if an error occurs creating the RegExp object, then is emitted
+    if (opts.isRegex) assertRegExpString(searchable);
+
 
     opts = Object.assign(_defaultOptions, opts, { input: searchable });
     return _binding_raw._fquery_impl(source, opts);
