@@ -42,7 +42,11 @@ export function fsearch(searchable: string | RegExp, files: string | string[], o
  * @param source                        Source to search from.
  * @param opts                          Search Options.
  */
-export function fquery(searchable: string | RegExp, source: string | Buffer, opts: ISearchOptions): ISearchMatch[];
+export function fquery(
+    searchable: string | RegExp,
+    source: string | Buffer,
+    opts: ISearchOptions
+): Omit<ISearchMatch, 'filePath'>;
 
 /// Promisified versions of the available functions.
 export namespace promises {
@@ -68,7 +72,7 @@ export namespace promises {
         searchable: string | RegExp,
         source: string | Buffer,
         opts: ISearchOptions
-    ): Promise<ISearchMatch[]>;
+    ): Promise<Omit<ISearchMatch, 'filePath'>>;
 }
 
 export as namespace tiny;
