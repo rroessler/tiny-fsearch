@@ -1,0 +1,19 @@
+AlignAfterOpenBracket: DontAlign
+AlignOperands: AlignAfterOperator
+AllowShortBlocksOnASingleLine: Always
+AllowShortCaseLabelsOnASingleLine: true
+AllowShortFunctionsOnASingleLine: All
+AllowShortIfStatementsOnASingleLine: true
+
+BasedOnStyle: Google
+
+ColumnLimit: 0
+
+EmptyLineBeforeAccessModifier: Always
+
+IndentPPDirectives: BeforeHash
+IndentWidth: 4
+
+NamespaceIndentation: All
+
+UseTab: Never
