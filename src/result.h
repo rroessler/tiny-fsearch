@@ -41,6 +41,9 @@ namespace tiny {
          */
         QueryMatch(const std::vector<SearchHit>& hits = {}) : hits(hits) {}
 
+        /// Default Destructor.
+        virtual ~QueryMatch() = default;
+
         /// Converts a query match into a NAPI object.
         virtual Napi::Object toObject() const {
             Napi::Object obj = Napi::Object::New(SearchOptions::NAPI_ENV);
@@ -63,7 +66,10 @@ namespace tiny {
          * @param hits                      Search Hits.
          */
         SearchMatch(const std::string& filePath, const std::vector<SearchHit>& hits = {})
-            : filePath(filePath), QueryMatch(hits) {}
+            : QueryMatch(hits), filePath(filePath) {}
+
+        /// Default Destructor.
+        ~SearchMatch() = default;
 
         /// Converts a search match into a NAPI object.
         Napi::Object toObject() const override {
