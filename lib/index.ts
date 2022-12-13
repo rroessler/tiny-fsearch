@@ -1,8 +1,10 @@
 /// Node Modules
 import fs from 'fs';
+import path from 'path';
 import { EventEmitter } from 'events';
 
 /// Vendor Modules
+import fg from 'fast-glob';
 import requirable from 'bindings';
 
 /** File-Search Namespace. */
@@ -21,8 +23,9 @@ export namespace FileSearch {
 
     /** Search options to use. */
     export interface IOptions {
-        readonly exclude?: string[]; // exclude globs
-        readonly ignoreCase?: boolean; // whether to ignore case
+        readonly exclude: string[]; // exclude globs
+        readonly ignoreCase: boolean; // whether to ignore case
+        readonly matchWholeWord: boolean; // whole word to use
     }
 
     /** Denotes the current file-search state. */
@@ -41,6 +44,17 @@ export namespace FileSearch {
 
     /** Subscription Handler. */
     export type Subscribable = <K extends keyof IEvents>(eventName: K, callback: (...args: IEvents[K]) => void) => void;
+
+    /****************
+     *  PROPERTIES  *
+     ****************/
+
+    /** Default search options. */
+    export const DEFAULT_OPTIONS = Object.freeze({
+        exclude: [],
+        ignoreCase: true,
+        matchWholeWord: false,
+    } as IOptions);
 
     /********************
      *  IMPLEMENTATION  *
@@ -86,23 +100,27 @@ export namespace FileSearch {
 
         /**
          * Constructs a file-search query.
-         * @param source                        Source to use.
+         * @param root                          Root source to use.
          * @param predicate                     Search predicate.
          * @param options                       Options to use.
          */
-        constructor(source: string, predicate: string | RegExp, options: IOptions = {}) {
+        constructor(root: string, predicate: string | RegExp, options: Partial<IOptions> = {}) {
             // throw an error if the source does not exist
-            if (!fs.existsSync(source)) throw new Error(`Query source "${source}" does not exist`);
+            if (!fs.existsSync(root)) throw new Error(`Query source "${root}" does not exist`);
 
-            // resolve the base predicate to be used
-            predicate = this.m_resolve(predicate);
+            // resolve the default options to be used
+            const params = Object.assign({}, DEFAULT_OPTIONS, options);
 
-            // rebuild the options to be used
-            const params = Object.assign({}, options, { emit: this.m_emitter.emit.bind(this.m_emitter) });
+            // resolve the base predicate, source and emitter to be used
+            predicate = this.m_resolvePredicate(predicate, params);
+            const emitter = this.m_emitter.emit.bind(this.m_emitter);
+            const sources = this.m_resolveSources(path.resolve(root), params);
 
-            // and construct the underlying binding instance
+            // require now to ensure not loaded until needed
             const { _Query_impl } = requirable('fsearch');
-            this.m_binding = new _Query_impl(predicate, params);
+
+            // and create the internal binding instance
+            this.m_binding = new _Query_impl(sources, predicate, emitter);
         }
 
         /********************
@@ -154,10 +172,28 @@ export namespace FileSearch {
 
         /**
          * Converts the predicate into a suitable regexp source string.
-         * @param predicate                 Predicate to use.
+         * @param pred                  Predicate to use.
+         * @param opts                  Options to alter regex with.
          */
-        private m_resolve(predicate: string | RegExp) {
-            return typeof predicate === 'string' ? predicate.replace(/[.*+?^${}()|[\]\\]/g, '\\$&') : predicate.source;
+        private m_resolvePredicate(pred: string | RegExp, { ignoreCase, matchWholeWord }: IOptions) {
+            // determine the base source to be used from the given predicate
+            let source = typeof pred === 'string' ? pred.replace(/[.*+?^${}()|[\]\\]/g, '\\$&') : pred.source;
+
+            // update the source based on the options found
+            if (ignoreCase) source = new RegExp(source, 'i').source;
+            if (matchWholeWord) source = `\\b${source}\\b`;
+
+            // return the resulting source string
+            return source;
+        }
+
+        /**
+         * Resolves all available sources to be used.
+         * @param root                  Base source.
+         * @param options               Options to resolve from.
+         */
+        private m_resolveSources(root: string, { exclude }: IOptions): string[] {
+            return fs.statSync(root).isDirectory() ? fg.sync(`${root}/**`, { ignore: exclude }) : [root];
         }
     }
 
@@ -171,7 +207,7 @@ export namespace FileSearch {
      * @param predicate                         Search predicate.
      * @param options                           Options to use.
      */
-    export const promisify = async (source: string, predicate: string | RegExp, options: IOptions = {}) => {
+    export const promisify = async (source: string, predicate: string | RegExp, options: Partial<IOptions> = {}) => {
         // construct the base query to be used
         const query = new Query(source, predicate, options);
 

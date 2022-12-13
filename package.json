@@ -28,7 +28,7 @@
     },
     "dependencies": {
         "bindings": "^1.5.0",
-        "micromatch": "^4.0.5",
+        "fast-glob": "^3.2.12",
         "node-addon-api": "^5.0.0"
     }
 }

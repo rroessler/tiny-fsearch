@@ -1,40 +1,44 @@
 #ifndef FSEARCH_QUERY_HPP
 #define FSEARCH_QUERY_HPP
 
-/// Napi Includes
-#include <napi.h>
+/// C++ Includes
+#include <regex>
+#include <string>
+#include <vector>
 
-/// NAPI Exports Namespace.
-namespace fsearch::exports {
+/// File-Search Namespace.
+namespace fsearch {
+
+//  TYPEDEFS  //
+
+/// File sources typing.
+using Sources = std::vector<std::string>;
 
 //  IMPLEMENTATIONS  //
 
-/// Wrapper for Query Instances.
-class Query : public Napi::ObjectWrap<Query> {
+/// File-Search Query Instance.
+class Query {
+
   //  PROPERTIES  //
+
+  const Sources m_sources;  // Source files vector.
+  const std::regex m_regex; // Regular expression to use.
 
 public:
   //  CONSTRUCTORS  //
 
-  static Napi::Object __init__(Napi::Env env, Napi::Object exports) {
-    // define the base query class
-    Napi::Function func = DefineClass(env, "_Query_impl", {});
+  /// Default Constructor.
+  Query() = delete;
 
-    // expose the constructor to be used
-    Napi::FunctionReference *ctor = new Napi::FunctionReference();
-    *ctor = Napi::Persistent(func);
-    env.SetInstanceData<Napi::FunctionReference>(ctor);
-
-    // attach it as an export
-    exports.Set("_Query_impl", func);
-
-    // and return the resulting exports
-    return exports;
-  }
-
-  Query(const Napi::CallbackInfo &info) : Napi::ObjectWrap<Query>(info) {}
+  /**
+   * @brief Constructs a file-search query instance.
+   * @param a_sources                       Sources to use.
+   * @param a_regex                         Regular expression.
+   */
+  Query(const Sources &a_sources, const std::regex &a_regex)
+      : m_sources(a_sources), m_regex(a_regex) {}
 };
 
-} // namespace fsearch::exports
+} // namespace fsearch
 
 #endif

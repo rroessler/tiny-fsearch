@@ -2,7 +2,7 @@
 #include <napi.h>
 
 /// File-Search Includes
-#include "fsearch/query.hpp"
+#include "exports/query.hpp"
 
 /**
  * @brief Initialises the module context.
@@ -10,7 +10,7 @@
  * @param exports                           Current exports object.
  */
 Napi::Object __init__(Napi::Env env, Napi::Object exports) {
-  return fsearch::exports::Query::__init__(env, exports);
+  return fsearch::exports::_Query_impl::__init__(env, exports);
 }
 
 /// and expose the exports initializer
