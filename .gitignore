@@ -1,0 +1,9 @@
+# ignoring NODE based items
+node_modules/
+
+# ignoring build outputs
+dist/
+build/
+
+# ignoring VSCODE items
+.vscode/

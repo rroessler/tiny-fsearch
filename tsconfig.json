@@ -1,0 +1,25 @@
+{
+    "compilerOptions": {
+        "rootDir": "lib",
+        "outDir": "dist",
+        "skipLibCheck": true,
+        "removeComments": true,
+
+        "target": "ES6",
+        "module": "CommonJS",
+        "moduleResolution": "node",
+        "esModuleInterop": true,
+
+        "alwaysStrict": true,
+        "allowUnreachableCode": false,
+        "noImplicitAny": true,
+        "strictNullChecks": true,
+
+        "noImplicitOverride": true,
+        "noUnusedLocals": true,
+        "noUnusedParameters": true
+    },
+
+    "include": ["lib/**/*"],
+    "exclude": ["dist/**/*", "node_modules/**/*"]
+}
