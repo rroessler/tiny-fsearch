@@ -3,8 +3,10 @@
 
 /// C++ Includes
 #include <regex>
-#include <string>
 #include <vector>
+
+/// File-Search Includes
+#include "fsearch/iterator.hpp"
 
 /// File-Search Namespace.
 namespace fsearch {
@@ -18,13 +20,17 @@ using Sources = std::vector<std::string>;
 
 /// File-Search Query Instance.
 class Query {
+  //  TYPEDEFS  //
 
-  //  PROPERTIES  //
-
-  const Sources m_sources;  // Source files vector.
-  const std::regex m_regex; // Regular expression to use.
+  /// Base iterator instance.
+  using _Iter = Iterator;
 
 public:
+  //  PROPERTIES  //
+
+  const Sources sources;  // Source files vector.
+  const std::regex regex; // Regular expression to use.
+
   //  CONSTRUCTORS  //
 
   /// Default Constructor.
@@ -36,7 +42,15 @@ public:
    * @param a_regex                         Regular expression.
    */
   Query(const Sources &a_sources, const std::regex &a_regex)
-      : m_sources(a_sources), m_regex(a_regex) {}
+      : sources(a_sources), regex(a_regex) {}
+
+  //  PUBLIC METHODS  //
+
+  /// Gets the starting query value.
+  _Iter begin() { return _Iter(this); }
+
+  /// Gets the end query iterator.
+  _Iter end() { return _Iter(nullptr); }
 };
 
 } // namespace fsearch
