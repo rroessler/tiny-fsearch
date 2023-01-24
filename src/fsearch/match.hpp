@@ -8,19 +8,18 @@
 /// File-Search Namespace.
 namespace fsearch {
 
-//  TYPEDEFS  //
+    //  TYPEDEFS  //
 
-/// Match Typing.
-struct Match {
+    /// Match Typing.
+    struct Match {
+        //  PROPERTIES  //
 
-  //  PROPERTIES  //
+        size_t line = 1;
+        size_t column = 1;
+        size_t length = 0;
+        std::string filePath = "";
+    };
 
-  size_t line = 0;
-  size_t column = 0;
-  size_t length = 0;
-  std::string filePath = "";
-};
-
-} // namespace fsearch
+}  // namespace fsearch
 
 #endif

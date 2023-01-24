@@ -4,7 +4,7 @@ import { IQueryMatch } from './types';
 import { IQueryOptions } from './options';
 
 /** File-Search Query Namespace. */
-export namespace fsearch.Query {
+export namespace fsearch {
     /**************
      *  TYPEDEFS  *
      **************/
@@ -25,23 +25,8 @@ export namespace fsearch.Query {
      * @param predicate                             Search predicate.
      * @param options                               Query options.
      */
-    export const bind = (source: string, predicate: string | RegExp, options: Partial<IOptions> = {}) => {
-        // construct a new underlying binding instance
-        const binding = Binding.create(source, predicate, options);
-        const getter = () => new Promise<IMatch | undefined>((resolve) => binding.next(resolve));
-
-        // and create the enclosed async generator
-        return async function* (): AsyncGenerator<IMatch, void> {
-            // get the initial match instance
-            let match = await getter();
-
-            // and attempt getting more
-            while (typeof match !== 'undefined') {
-                yield match;
-                match = await getter();
-            }
-        };
-    };
+    export const stream = (source: string, predicate: string | RegExp, options: Partial<IOptions> = {}) =>
+        Binding.stream(source, predicate, options);
 
     /**
      * Gets the associated synchronous query result.
@@ -49,8 +34,8 @@ export namespace fsearch.Query {
      * @param predicate                             Search predicate.
      * @param options                               Query options.
      */
-    export const sync = (source: string, predicate: string | RegExp, options: Partial<IOptions> = {}): IMatch[] =>
-        Binding.create(source, predicate, options).sync();
+    export const sync = (source: string, predicate: string | RegExp, options: Partial<IOptions> = {}) =>
+        Binding.sync(source, predicate, options);
 }
 
 /// Export the base namespace as a default.

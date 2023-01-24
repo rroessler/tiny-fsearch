@@ -53,7 +53,7 @@ export namespace IQueryOptions.Resolve {
      * @param root                              Root source instance.
      * @param options                           Options to resolve from.
      */
-    export const sources = (source: string, { exclude }: IQueryOptions): string[] => {
+    export const sources = (source: string, { exclude }: IQueryOptions) => {
         return fs.statSync(source).isDirectory() ? fg.sync(`${source}/**`, { ignore: exclude }) : [source];
     };
 }

@@ -5,7 +5,7 @@
         "skipLibCheck": true,
         "removeComments": true,
 
-        "target": "ES6",
+        "target": "ESNext",
         "module": "CommonJS",
         "moduleResolution": "node",
         "esModuleInterop": true,
@@ -17,7 +17,9 @@
 
         "noImplicitOverride": true,
         "noUnusedLocals": true,
-        "noUnusedParameters": true
+        "noUnusedParameters": true,
+
+        "lib": ["ESNext"]
     },
 
     "include": ["lib/**/*"],

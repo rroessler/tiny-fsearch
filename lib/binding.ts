@@ -6,8 +6,8 @@ import path from 'path';
 import requirable from 'bindings';
 
 /// File-Search Modules
-import { IQueryOptions } from './options';
 import { IQueryMatch } from './types';
+import { IQueryOptions } from './options';
 
 /** Query Binding Functionality. */
 export namespace Binding {
@@ -15,13 +15,15 @@ export namespace Binding {
      *  TYPEDEFS  *
      **************/
 
-    /** Raw Query Binding Interface. */
-    export interface IRaw {
-        // attempts getting all match queries
-        sync: () => IQueryMatch[];
+    /** The binding generator interface. */
+    export interface IGenerator {
+        [Symbol.asyncIterator](): AsyncIterator<IQueryMatch[]>;
+    }
 
-        // gets the next available query match
-        next: (callback: (match: IQueryMatch | undefined) => void) => void;
+    /** The raw binding interface. */
+    export interface IRaw {
+        synchronous: (sources: string[], predicate: string) => IQueryMatch[];
+        Generator: { new (sources: string[], predicate: string): IGenerator };
     }
 
     /********************
@@ -29,25 +31,49 @@ export namespace Binding {
      ********************/
 
     /**
-     * Constructs a raw file-search query binding.
+     * Constructs a synchronous file-search query binding.
      * @param root                          Root source to use.
-     * @param predicate                     Search predicate.
+     * @param input                         Search predicate.
      * @param options                       Options to use.
      */
-    export const create = (source: string, predicate: string | RegExp, options: Partial<IQueryOptions>) => {
+    export const sync = (source: string, input: string | RegExp, options: Partial<IQueryOptions>): IQueryMatch[] => {
+        // if the predicate is empty, then return immediately
+        if (input === '') return [];
+
         // throw an error if the source does not exist
         if (!fs.existsSync(source)) throw new Error(`Query source "${source}" does not exist`);
 
         // resolve the default options to be used
         const params = Object.assign({}, IQueryOptions.defaults, options);
+        const sources = IQueryOptions.Resolve.sources(path.resolve(source), params);
+        const predicate = IQueryOptions.Resolve.predicate(input, params);
 
         // get the base query binding
-        const { _Query_impl } = requirable('fsearch');
-
-        // and create the required binding
-        return new _Query_impl(
-            IQueryOptions.Resolve.sources(path.resolve(source), params),
-            IQueryOptions.Resolve.predicate(predicate, params)
-        ) as IRaw;
+        return raw().synchronous(sources, predicate);
     };
+
+    /**
+     * Constructs an asychronous file-search query binding.
+     * @param root                          Root source to use.
+     * @param input                         Search predicate.
+     * @param options                       Options to use.
+     */
+    export const stream = (source: string, input: string | RegExp, options: Partial<IQueryOptions>) => {
+        // if the input is empty, then return immediately
+        if (input === '') return { async *[Symbol.asyncIterator]() {} };
+
+        // throw an error if the source does not exist
+        if (!fs.existsSync(source)) throw new Error(`Query source "${source}" does not exist`);
+
+        // resolve the default options to be used
+        const params = Object.assign({}, IQueryOptions.defaults, options);
+        const sources = IQueryOptions.Resolve.sources(path.resolve(source), params);
+        const predicate = IQueryOptions.Resolve.predicate(input, params);
+
+        // construct the generator to be used
+        return new (raw().Generator)(sources, predicate);
+    };
+
+    /** Gets the binding instance with the raw details. */
+    export const raw = (): IRaw => requirable('fsearch');
 }

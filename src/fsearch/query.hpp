@@ -2,57 +2,77 @@
 #define FSEARCH_QUERY_HPP
 
 /// C++ Includes
+#include <deque>
+#include <fstream>
 #include <regex>
 #include <vector>
 
 /// File-Search Includes
-#include "fsearch/iterator.hpp"
+#include "fsearch/match.hpp"
 
 /// File-Search Namespace.
 namespace fsearch {
 
-//  TYPEDEFS  //
+    //  TYPEDEFS  //
 
-/// File sources typing.
-using Sources = std::vector<std::string>;
+    /// File sources typing.
+    using Sources = std::vector<std::string>;
 
-//  IMPLEMENTATIONS  //
+    //  IMPLEMENTATIONS  //
 
-/// File-Search Query Instance.
-class Query {
-  //  TYPEDEFS  //
+    /// File-Search Query Instance.
+    struct Query {
+        //  PROPERTIES  //
 
-  /// Base iterator instance.
-  using _Iter = Iterator;
+        /// Source file to search.
+        const std::string source;
 
-public:
-  //  PROPERTIES  //
+        //  CONSTRUCTORS  //
 
-  const Sources sources;  // Source files vector.
-  const std::regex regex; // Regular expression to use.
+        /// Default Constructor.
+        Query() = delete;
 
-  //  CONSTRUCTORS  //
+        /**
+         * @brief Constructs a file-search query instance.
+         * @param a_source                      Sources file.
+         */
+        Query(const std::string &a_source)
+            : source(a_source) {}
 
-  /// Default Constructor.
-  Query() = delete;
+        //  PUBLIC METHODS  //
 
-  /**
-   * @brief Constructs a file-search query instance.
-   * @param a_sources                       Sources to use.
-   * @param a_regex                         Regular expression.
-   */
-  Query(const Sources &a_sources, const std::regex &a_regex)
-      : sources(a_sources), regex(a_regex) {}
+        /**
+         * Coordinates searching across the current query source.
+         * @param re                            Regex instance.
+         */
+        std::deque<Match> find(const std::regex &re) const {
+            // construct the file-stream to be used
+            auto stream = std::fstream(source);
+            auto matches = std::deque<Match>();
 
-  //  PUBLIC METHODS  //
+            // use a base string instance (save creating new instances)
+            std::string line;
 
-  /// Gets the starting query value.
-  _Iter begin() { return _Iter(this); }
+            // iteratively read all the lines in the file
+            for (size_t ln = 1, col = 1; std::getline(stream, line); ++ln, col = 1) {
+                // attempt searching line-by line
+                for (std::smatch sm; std::regex_search(line, sm, re);) {
+                    size_t len = sm.str().size();           // the length of the match found
+                    col += sm.prefix().str().size() + len;  // get the current column
 
-  /// Gets the end query iterator.
-  _Iter end() { return _Iter(nullptr); }
-};
+                    // and emplace the matches when found
+                    matches.push_back({ln, col - len, len, source});
 
-} // namespace fsearch
+                    // update the iteration condition
+                    line = sm.suffix();
+                }
+            }
+
+            // return the resulting matches found
+            return matches;
+        }
+    };
+
+}  // namespace fsearch
 
 #endif

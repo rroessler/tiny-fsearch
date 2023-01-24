@@ -6,17 +6,15 @@ import fsearch from '..';
 
 /// Defaulted query instance.
 test('Query Async - defaulted "hello"', async (_) => {
-    // get all available search results
-    const query = fsearch.Query.bind('lib', 'hello')();
+    // construct the parallel stream to be used
+    const stream = fsearch.stream('lib', 'hello');
 
-    // current hit counter
-    let count = 0;
+    // prepare a counter for determining how many details we have
+    let counter = 0;
 
-    // iterate over all the query results
-    for await (const _ of query) {
-        count++; // increment the current count
-    }
+    // iterable get the stream
+    for await (const matches of stream) counter += matches.length;
 
     // ensure we have 4 results
-    _.is(count, 4, 'Invalid result count');
+    _.is(counter, 4, 'Invalid result count');
 });

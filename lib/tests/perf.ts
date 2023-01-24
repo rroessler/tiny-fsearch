@@ -4,18 +4,41 @@ import test from 'ava';
 /// File-Search Imports
 import fsearch from '..';
 
-test('Query Speed', (_) => {
-    // get the current execution time
-    const start = process.hrtime.bigint();
+/// File-Search Utilities
+import { Measure } from '../utils/measure';
 
-    // run the search instance
-    fsearch.Query.sync('src', 'time', { exclude: ['node_modules/**'] });
+test('Query Speed', async (_) => {
+    // prepare the desired options to be used
+    const cwd: string = process.cwd();
+    const predicate: string = 'time';
+    const options = { exclude: ['**/node_modules'] };
 
-    // stop the execution timer
-    const duration = process.hrtime.bigint() - start;
+    // propose a number of iterations to complete
+    const iters: number = 1;
 
-    // and read the current time out
-    console.log({ duration });
+    // determine the synchronous time that occured
+    const synchronous = await Measure.record(iters, () => fsearch.sync(cwd, predicate, options));
 
+    // and now test the parallel time that occured
+    const parallel = await Measure.record(iters, async () => {
+        for await (const _ of fsearch.stream(cwd, predicate, options)) void 0;
+    });
+
+    // get the fastest and slowest averags to be shown
+    const [fastest, slowest] =
+        parallel.average < synchronous.average ? [parallel, synchronous] : [synchronous, parallel];
+
+    // time less than other
+    const reference = (100 * Number(fastest.average - slowest.average)) / Number(slowest.average);
+    const percentage = `| ${reference.toFixed(2)}%`;
+
+    // emit a log about the relative size and times required
+    _.log('Parallel:', Measure.format(parallel.average));
+    _.log('Synchronous:', Measure.format(synchronous.average));
+
+    // determine which one was fastest
+    _.log('Fastest:', parallel.average < synchronous.average ? 'Parallel' : 'Synchronous', percentage);
+
+    // pass-through as only concerned about the values
     _.assert(true);
 });

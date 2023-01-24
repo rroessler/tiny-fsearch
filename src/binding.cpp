@@ -10,7 +10,11 @@
  * @param exports                           Current exports object.
  */
 Napi::Object __init__(Napi::Env env, Napi::Object exports) {
-  return fsearch::exports::_Query_impl::__init__(env, exports);
+    // prepend all the required values for this addon
+    exports.Set("synchronous", Napi::Function::New(env, fsearch::exports::synchronous));
+
+    // add on the required generator instance
+    return fsearch::exports::Generator::Init(env, exports);
 }
 
 /// and expose the exports initializer
