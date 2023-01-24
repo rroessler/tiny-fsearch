@@ -54,6 +54,18 @@ export namespace IQueryOptions.Resolve {
      * @param options                           Options to resolve from.
      */
     export const sources = (source: string, { exclude }: IQueryOptions) => {
-        return fs.statSync(source).isDirectory() ? fg.sync(`${source}/**`, { ignore: exclude }) : [source];
+        // prepare the required glob options
+        const options: fg.Options = {
+            dot: true,
+            absolute: true,
+            onlyFiles: true,
+
+            cwd: source,
+            ignore: exclude,
+            caseSensitiveMatch: process.platform === 'linux',
+        };
+
+        // and determine what we need to return
+        return fs.statSync(source).isDirectory() ? fg.sync(`**`, options) : [source];
     };
 }

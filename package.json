@@ -3,6 +3,7 @@
     "version": "2.0.0",
     "description": "A small and versatile find-in-file/search library.",
     "main": "dist/index.js",
+    "types": "dist/types/index.d.ts",
     "scripts": {
         "dist": "run-s clean dist:*",
         "dist:ts": "tsc",
@@ -10,7 +11,8 @@
         "clean": "run-p clean:*",
         "clean:ts": "rimraf dist",
         "clean:gyp": "node-gyp clean",
-        "test": "ava"
+        "test": "ava",
+        "prepublishOnly": "run-s clean:ts dist:ts"
     },
     "keywords": [],
     "author": "rroesslerio",

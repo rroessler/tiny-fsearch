@@ -12,57 +12,53 @@ $ npm install --save tiny-fsearch
 
 ## Usage
 
-The module consists of two available functions and promisified alternatives.
+The module consists of two available functions and a promisified alternative.
 
 ```javascript
-const tiny = require('tiny-fsearch');
+const fsearch = require('tiny-fsearch');
 
-/// File searching.
-tiny.fsearch(searchable, filePaths, options);
+/// Single-threaded query (returns all found matches).
+fsearch.sync(source, predicate, options);
 
-/// Source String/Buffer query method.
-tiny.fquery(searchable, source, options);
+/// Multi-threaded query stream (returns an async iterator).
+fsearch.stream(source, predicate, options);
 
-/// Promisified alternatives
-tiny.promises.fsearch(...);
-tiny.promises.fquery(...);
+/// Wraps `stream` in a promise wrapper for results.
+fsearch.concurrent(source, predicate, options);
 ```
 
-**searchable [string|RegExp]**
+### Options
+
+**source [string]**
+
+A file or directory in which to search in.
+
+**predicate [string|RegExp]**
 
 The string or RegExp to use for matching.
 
-**filePaths [string|string[]]**
+**options [fsearch.IOptions]**
 
-A file or file-paths to coordinate searching from (`fsearch` only).
-
-**source [string|Buffer]**
-
-A source string or NodeJS Buffer to search from (`fquery` only).
-
-**options [object]**
-
-The available options exposed for setting different search parameters.
+The available options exposed for setting different search parameters are:
 
 ```typescript
-interface ISearchOptions {
-    isRegex: boolean; // Denotes is using RegExp string. Toggled true if method is given RegExp object as searchable.
-    matchCase: boolean; // Case sensitivity of searching.
-    matchWholeWord: boolean; // Wraps internal RegExp logic with zero-width boundary characters (\b).
-    zeroIndexing: boolean; // Returns results with zero-indexing.
+interface fsearch.IOptions {
+    exclude: string[];          // File-globs to exclude from searching         (default: [])
+    ignoreCase: boolean;        // Run a case-insensitive match                 (default: true)
+    matchWholeWord: boolean;    // Wraps searches in a word-group boundary      (default: false)
 }
 ```
 
-Both functions return similar hit-based results. For the `fsearch` implementation a series of results will be return in an array, where as the `fquery` returns only a singular result. The format of a search result is:
+### Results
+
+Matched results with be in the form of:
 
 ```typescript
-interface ISearchMatch {
-    filePath: string; // `fsearch` only.
-    hits: {
-        content: string; // Line content of match.
-        line: number; // Originating line number.
-        column: number; // Originating column number.
-    }[];
+interface fsearch.IMatch {
+    readonly line: number;
+    readonly column: number;
+    readonly length: number;
+    readonly filePath: number;
 }
 ```
 
