@@ -3,7 +3,7 @@
 
 /// C++ Includes
 #include <deque>
-#include <fstream>
+#include <iostream>
 #include <regex>
 #include <vector>
 
@@ -21,9 +21,13 @@ namespace fsearch {
     //  IMPLEMENTATIONS  //
 
     /// File-Search Query Instance.
-    struct Query {
+    class Query {
         //  PROPERTIES  //
 
+        /// The underlying stream buffer.
+        std::shared_ptr<std::istream> m_stream;
+
+       public:
         /// Source file to search.
         const std::string source;
 
@@ -35,9 +39,12 @@ namespace fsearch {
         /**
          * @brief Constructs a file-search query instance.
          * @param a_source                      Sources file.
+         * @param a_stream                      Buffer instance.
          */
-        Query(const std::string &a_source)
-            : source(a_source) {}
+        Query(const std::string &a_source, const std::shared_ptr<std::istream> &a_stream)
+            : m_stream(a_stream ? a_stream : std::make_shared<std::ifstream>(a_source)), source(a_source) {
+            m_stream->sync_with_stdio(false), m_stream->tie(0);  // allow unrestricted mode
+        }
 
         //  PUBLIC METHODS  //
 
@@ -46,15 +53,17 @@ namespace fsearch {
          * @param re                            Regex instance.
          */
         std::deque<Match> find(const std::regex &re) const {
-            // construct the file-stream to be used
-            auto stream = std::fstream(source);
+            // always pre-clear the status of the stream
+            m_stream->clear(), m_stream->seekg(0);
+
+            // prepare the output matches we will attempt
             auto matches = std::deque<Match>();
 
             // use a base string instance (save creating new instances)
             std::string line;
 
             // iteratively read all the lines in the file
-            for (size_t ln = 1, col = 1; std::getline(stream, line); ++ln, col = 1) {
+            for (size_t ln = 1, col = 1; std::getline(*m_stream.get(), line); ++ln, col = 1) {
                 // attempt searching line-by line
                 for (std::smatch sm; std::regex_search(line, sm, re);) {
                     size_t len = sm.str().size();           // the length of the match found

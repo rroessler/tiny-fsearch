@@ -3,10 +3,10 @@
 
 /// C++ Includes
 #include <functional>
-// #include <future>
 #include <memory>
 #include <mutex>
 #include <thread>
+#include <unordered_map>
 
 /// Napi Includes
 #include <napi.h>
@@ -73,15 +73,15 @@ namespace fsearch::exports {
         Sources m_sources = {};   // Sources instance.
         std::regex m_regex = {};  // Base search regex.
 
+        // The alternative buffers available.
+        std::unordered_map<std::string, std::shared_ptr<std::istream>> m_buffers = {};
+
         std::mutex m_mutex;            // Worker mutex.
         std::condition_variable m_cv;  // Thread helper.
 
         std::thread m_thread;  // Current thread being used.
         Future m_deferred;     // Deferred future.
         TSFN m_tsfn;           // Thread-safe function.
-
-        // /// Current futures to be requested.
-        // std::deque<std::shared_future<void>> m_futures = {};
 
        public:
         //  CONSTRUCTORS  //
@@ -92,14 +92,24 @@ namespace fsearch::exports {
          */
         Generator(const Napi::CallbackInfo &info) : Napi::ObjectWrap<Generator>(info) {
             // ensure we have a valid number of arguments
-            if (info.Length() != 2) throw Napi::Error::New(info.Env(), "Generator > Expected two arguments");
+            if (info.Length() < 3) throw Napi::Error::New(info.Env(), "Generator > Expected three arguments");
+
+            // set the current alternatives to be used
+            auto alternatives = info[2].As<Napi::Object>();
 
             // begin reading the sources, regex and emitter instance
             auto sources = info[0].As<Napi::Array>();
             m_sources.reserve(sources.Length());
 
             // push back all the available sources
-            for (size_t ii = 0; ii < sources.Length(); ++ii) m_sources.push_back(sources.Get(ii).ToString());
+            for (size_t ii = 0; ii < sources.Length(); ++ii) {
+                // get the base source string and stream buffer
+                auto source = sources.Get(ii).ToString();
+                auto stream = details::resolve_buffer(source, alternatives);
+
+                // and emplace on the available sources and alternatives
+                m_sources.push_back(source), m_buffers.emplace(source, stream);
+            }
 
             // construct the regex instance from the string given
             m_regex = std::regex(info[1].ToString().Utf8Value(), std::regex_constants::ECMAScript);
@@ -154,7 +164,7 @@ namespace fsearch::exports {
             Ref();
 
             // create the futures to be used asynchronously
-            m_thread = std::thread(&Generator::m_threadEntry, this);
+            m_thread = std::thread(&Generator::m_worker, this);
 
             // create the iterable instance
             auto iterable = Napi::Object::New(env);
@@ -185,14 +195,14 @@ namespace fsearch::exports {
         //  PRIVATE METHODS  //
 
         /** Current thread entry method. */
-        void m_threadEntry() {
+        void m_worker() {
             // continue matching results as necessary
             while (true) {
                 std::unique_lock<std::mutex> lock(m_mutex);
                 m_cv.wait(lock, [this] { return m_deferred != nullptr; });
 
                 // if complete, then block with the final details
-                if (m_position >= (m_sources.size() - 1)) {
+                if (m_position >= m_sources.size()) {
                     m_tsfn.BlockingCall(new Data{true, std::move(m_deferred), {}});
                     break;
                 }
@@ -201,7 +211,7 @@ namespace fsearch::exports {
                 auto source = m_sources.at(m_position);
 
                 // generate the current matches desired
-                auto matches = Query(source).find(m_regex);
+                auto matches = Query(source, m_buffers.at(source)).find(m_regex);
 
                 // only block when matches were found
                 if (matches.size()) m_tsfn.BlockingCall(new Data{false, std::move(m_deferred), matches});
@@ -223,10 +233,11 @@ namespace fsearch::exports {
         auto env = info.Env();
 
         // ensure we have a valid number of arguments
-        if (info.Length() != 2) throw Napi::Error::New(env, "Expected two arguments");
+        if (info.Length() < 3) throw Napi::Error::New(env, "Expected three arguments");
 
         // deconstruct the available sources to be used
         auto sources = info[0].As<Napi::Array>();
+        auto alternatives = info[2].As<Napi::Object>();
 
         // construct the regex instance from the string given
         auto regex = std::regex(info[1].ToString().Utf8Value(), std::regex_constants::ECMAScript);
@@ -236,8 +247,13 @@ namespace fsearch::exports {
 
         // iteratively query every single file instance
         for (size_t ii = 0; ii < sources.Length(); ++ii) {
+            // get the original source value
             auto source = sources.Get(ii).ToString();
-            auto matches = Query(source).find(regex);
+
+            // attempt getting as many matches now
+            auto matches = Query(source, details::resolve_buffer(source, alternatives)).find(regex);
+
+            // and insert into the total results
             results.insert(results.end(), matches.begin(), matches.end());
         }
 

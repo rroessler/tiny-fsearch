@@ -3,6 +3,9 @@
 
 /// C++ Includes
 #include <deque>
+#include <fstream>
+#include <memory>
+#include <sstream>
 
 /// Napi Includes
 #include <napi.h>
@@ -51,5 +54,29 @@ namespace fsearch::exports {
     }
 
 }  // namespace fsearch::exports
+
+/// Additional Conversion Details.
+namespace fsearch::details {
+
+    //  PUBLIC METHODS  //
+
+    /**
+     * @brief Resolves a source buffer based on the available buffer dictionary.
+     * @param source                                    Source to resolve.
+     * @param dict                                      Stream dictionary.
+     */
+    inline static std::shared_ptr<std::istream> resolve_buffer(const std::string &source, const Napi::Object &dict) {
+        // construct a file-stream if the source does not exist
+        if (!dict.Has(source)) return std::make_shared<std::ifstream>(source);
+
+        // get the underlying NAPI buffer
+        auto buffer = dict.Get(source).As<Napi::Int8Array>();
+        auto pointer = buffer.Data();  // and the base pointer
+
+        // construct the string-stream to wrap
+        return std::make_shared<std::stringstream>(std::string(pointer, pointer + buffer.ByteLength()));
+    }
+
+}  // namespace fsearch::details
 
 #endif

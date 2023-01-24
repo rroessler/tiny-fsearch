@@ -22,8 +22,8 @@ export namespace Binding {
 
     /** The raw binding interface. */
     export interface IRaw {
-        synchronous: (sources: string[], predicate: string) => IQueryMatch[];
-        Generator: { new (sources: string[], predicate: string): IGenerator };
+        synchronous: (sources: string[], predicate: string, alternatives: NodeJS.Dict<Buffer>) => IQueryMatch[];
+        Generator: { new (sources: string[], predicate: string, alternatives: NodeJS.Dict<Buffer>): IGenerator };
     }
 
     /********************
@@ -47,9 +47,10 @@ export namespace Binding {
         const params = Object.assign({}, IQueryOptions.defaults, options);
         const sources = IQueryOptions.Resolve.sources(path.resolve(source), params);
         const predicate = IQueryOptions.Resolve.predicate(input, params);
+        const alternatives = IQueryOptions.Resolve.alternatives(sources, params);
 
         // get the base query binding
-        return raw().synchronous(sources, predicate);
+        return raw().synchronous(sources, predicate, alternatives);
     };
 
     /**
@@ -69,9 +70,10 @@ export namespace Binding {
         const params = Object.assign({}, IQueryOptions.defaults, options);
         const sources = IQueryOptions.Resolve.sources(path.resolve(source), params);
         const predicate = IQueryOptions.Resolve.predicate(input, params);
+        const alternatives = IQueryOptions.Resolve.alternatives(sources, params);
 
         // construct the generator to be used
-        return new (raw().Generator)(sources, predicate);
+        return new (raw().Generator)(sources, predicate, alternatives);
     };
 
     /** Gets the binding instance with the raw details. */

@@ -4,10 +4,13 @@ import test from 'ava';
 /// File-Search Imports
 import fsearch from '..';
 
+/// File-Search Utilities.
+import * as Constants from '../utils/constants';
+
 /// Defaulted query instance.
-test('Query Async - defaulted "hello"', async (_) => {
+test(`Query Async - defaulted "${Constants.TEST_PREDICATE}"`, async (_) => {
     // construct the parallel stream to be used
-    const stream = fsearch.stream('lib', 'hello');
+    const stream = fsearch.stream('lib', Constants.TEST_PREDICATE);
 
     // prepare a counter for determining how many details we have
     let counter = 0;
@@ -16,5 +19,5 @@ test('Query Async - defaulted "hello"', async (_) => {
     for await (const matches of stream) counter += matches.length;
 
     // ensure we have 4 results
-    _.is(counter, 4, 'Invalid result count');
+    _.is(counter, Constants.TEST_EXPECTED_LENGTH, 'Invalid result count');
 });

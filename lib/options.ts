@@ -9,6 +9,7 @@ export interface IQueryOptions {
     readonly exclude: string[]; // exclude globs
     readonly ignoreCase: boolean; // whether to ignore case
     readonly matchWholeWord: boolean; // whole word to use
+    readonly alternatives: NodeJS.Dict<Buffer>; // source alternatives
 }
 
 /** Available Query Options. */
@@ -22,6 +23,7 @@ export namespace IQueryOptions {
         exclude: [],
         ignoreCase: true,
         matchWholeWord: false,
+        alternatives: {},
     };
 }
 
@@ -67,5 +69,18 @@ export namespace IQueryOptions.Resolve {
 
         // and determine what we need to return
         return fs.statSync(source).isDirectory() ? fg.sync(`**`, options) : [source];
+    };
+
+    /**
+     * Resolves all available alternative buffers.
+     * @param sources                           Sources to filter with.
+     * @param options                           Options to resolve from.
+     */
+    export const alternatives = (sources: string[], { alternatives: _ }: IQueryOptions) => {
+        // remove all invalid keys that we do not need
+        for (const key in Object.keys(_)) !sources.includes(key) && delete _[key];
+
+        // and finally return the result
+        return _;
     };
 }
