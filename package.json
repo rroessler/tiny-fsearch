@@ -1,6 +1,6 @@
 {
     "name": "tiny-fsearch",
-    "version": "2.0.0",
+    "version": "2.0.1",
     "description": "A small and versatile find-in-file/search library.",
     "main": "dist/index.js",
     "types": "dist/types/index.d.ts",
@@ -14,6 +14,11 @@
         "test": "ava",
         "prepublishOnly": "run-s clean:ts dist:ts"
     },
+    "files": [
+        "dist/**/*",
+        "src/**/*",
+        "binding.gyp"
+    ],
     "keywords": [],
     "author": "rroesslerio",
     "license": "MIT",
