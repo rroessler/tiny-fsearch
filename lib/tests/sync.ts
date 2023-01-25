@@ -15,3 +15,12 @@ test(`Query Sync - defaulted "${Constants.TEST_PREDICATE}"`, (_) => {
     // and ensure we have some
     _.is(results.length, Constants.TEST_EXPECTED_LENGTH, 'Invalid result count');
 });
+
+/// Restricted query instance.
+test(`Query Sync - restrict "${Constants.TEST_PREDICATE}"`, (_) => {
+    // get all available search results
+    const results = fsearch.sync('lib', Constants.TEST_PREDICATE, { maximum: 0 });
+
+    // and ensure we have some
+    _.is(results.length, 0, 'Invalid result count');
+});

@@ -11,7 +11,7 @@ test('Query Speed', async (_) => {
     // prepare the desired options to be used
     const cwd: string = process.cwd();
     const predicate: string = 'time';
-    const options = { exclude: ['**/node_modules'] };
+    const options = { exclude: [] };
 
     // propose a number of iterations to complete
     const iters: number = 1;
@@ -21,7 +21,14 @@ test('Query Speed', async (_) => {
 
     // and now test the parallel time that occured
     const parallel = await Measure.record(iters, async () => {
-        for await (const _ of fsearch.stream(cwd, predicate, options)) void 0;
+        // build the base stream
+        const stream = fsearch.stream(cwd, predicate, options);
+
+        // alert about the total files to be searched
+        _.log('Files to search:', stream.sources.length);
+
+        // and attempt searching as necessary
+        for await (const _ of stream) void 0;
     });
 
     // get the fastest and slowest averags to be shown

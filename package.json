@@ -1,6 +1,6 @@
 {
     "name": "tiny-fsearch",
-    "version": "2.0.2",
+    "version": "2.0.3",
     "description": "A small and versatile find-in-file/search library.",
     "main": "dist/index.js",
     "types": "dist/types/index.d.ts",

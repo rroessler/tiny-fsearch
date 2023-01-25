@@ -1,6 +1,5 @@
 /// Node Modules
 import fs from 'fs';
-import path from 'path';
 
 /// Vendor Modules
 import requirable from 'bindings';
@@ -20,10 +19,18 @@ export namespace Binding {
         [Symbol.asyncIterator](): AsyncIterator<IQueryMatch[]>;
     }
 
+    /** The expected binding arguments array. */
+    export type Arguments = [sources: string[], predicate: string, alternatives: NodeJS.Dict<Buffer>, maximum: number];
+
     /** The raw binding interface. */
     export interface IRaw {
-        synchronous: (sources: string[], predicate: string, alternatives: NodeJS.Dict<Buffer>) => IQueryMatch[];
-        Generator: { new (sources: string[], predicate: string, alternatives: NodeJS.Dict<Buffer>): IGenerator };
+        synchronous: (...args: Arguments) => IQueryMatch[];
+        Generator: { new (...args: Arguments): IGenerator };
+    }
+
+    /** Parallel Binding Interface. */
+    export interface IParallel extends IGenerator {
+        sources: string[];
     }
 
     /********************
@@ -44,13 +51,10 @@ export namespace Binding {
         if (!fs.existsSync(source)) throw new Error(`Query source "${source}" does not exist`);
 
         // resolve the default options to be used
-        const params = Object.assign({}, IQueryOptions.defaults, options);
-        const sources = IQueryOptions.Resolve.sources(path.resolve(source), params);
-        const predicate = IQueryOptions.Resolve.predicate(input, params);
-        const alternatives = IQueryOptions.Resolve.alternatives(sources, params);
+        const { sources, predicate, alternatives, maximum } = IQueryOptions.Resolve.all(source, input, options);
 
         // get the base query binding
-        return raw().synchronous(sources, predicate, alternatives);
+        return raw().synchronous(sources, predicate, alternatives, maximum);
     };
 
     /**
@@ -59,21 +63,18 @@ export namespace Binding {
      * @param input                         Search predicate.
      * @param options                       Options to use.
      */
-    export const stream = (source: string, input: string | RegExp, options: Partial<IQueryOptions>) => {
+    export const stream = (source: string, input: string | RegExp, options: Partial<IQueryOptions>): IParallel => {
         // if the input is empty, then return immediately
-        if (input === '') return { async *[Symbol.asyncIterator]() {} };
+        if (input === '') return { async *[Symbol.asyncIterator]() {}, sources: [] };
 
         // throw an error if the source does not exist
         if (!fs.existsSync(source)) throw new Error(`Query source "${source}" does not exist`);
 
         // resolve the default options to be used
-        const params = Object.assign({}, IQueryOptions.defaults, options);
-        const sources = IQueryOptions.Resolve.sources(path.resolve(source), params);
-        const predicate = IQueryOptions.Resolve.predicate(input, params);
-        const alternatives = IQueryOptions.Resolve.alternatives(sources, params);
+        const { sources, predicate, alternatives, maximum } = IQueryOptions.Resolve.all(source, input, options);
 
         // construct the generator to be used
-        return new (raw().Generator)(sources, predicate, alternatives);
+        return Object.assign(new (raw().Generator)(sources, predicate, alternatives, maximum), { sources });
     };
 
     /** Gets the binding instance with the raw details. */

@@ -73,6 +73,9 @@ namespace fsearch::exports {
         Sources m_sources = {};   // Sources instance.
         std::regex m_regex = {};  // Base search regex.
 
+        uint32_t m_total = 0;             // Current total matches.
+        uint32_t m_maximum = UINT32_MAX;  // Maximum allowed hits.
+
         // The alternative buffers available.
         std::unordered_map<std::string, std::shared_ptr<std::istream>> m_buffers = {};
 
@@ -92,7 +95,7 @@ namespace fsearch::exports {
          */
         Generator(const Napi::CallbackInfo &info) : Napi::ObjectWrap<Generator>(info) {
             // ensure we have a valid number of arguments
-            if (info.Length() < 3) throw Napi::Error::New(info.Env(), "Generator > Expected three arguments");
+            if (info.Length() < 4) throw Napi::Error::New(info.Env(), "Generator > Expected three arguments");
 
             // set the current alternatives to be used
             auto alternatives = info[2].As<Napi::Object>();
@@ -113,6 +116,7 @@ namespace fsearch::exports {
 
             // construct the regex instance from the string given
             m_regex = std::regex(info[1].ToString().Utf8Value(), std::regex_constants::ECMAScript);
+            m_maximum = info[3].ToNumber().Uint32Value();
         }
 
         /**
@@ -209,15 +213,17 @@ namespace fsearch::exports {
 
                 // get the next source to be used
                 auto source = m_sources.at(m_position);
+                uint32_t leftovers = m_maximum - m_total;
 
                 // generate the current matches desired
-                auto matches = Query(source, m_buffers.at(source)).find(m_regex);
+                auto matches = Query(source, m_buffers.at(source)).find(m_regex, leftovers);
 
                 // only block when matches were found
                 if (matches.size()) m_tsfn.BlockingCall(new Data{false, std::move(m_deferred), matches});
 
-                // increment the position now
+                // increment the position and total now
                 ++m_position;
+                m_total += matches.size();
             }
 
             // once complete, manually release the thread-safe function
@@ -238,6 +244,7 @@ namespace fsearch::exports {
         // deconstruct the available sources to be used
         auto sources = info[0].As<Napi::Array>();
         auto alternatives = info[2].As<Napi::Object>();
+        auto maximum = info[3].ToNumber().Uint32Value();
 
         // construct the regex instance from the string given
         auto regex = std::regex(info[1].ToString().Utf8Value(), std::regex_constants::ECMAScript);
@@ -249,12 +256,16 @@ namespace fsearch::exports {
         for (size_t ii = 0; ii < sources.Length(); ++ii) {
             // get the original source value
             auto source = sources.Get(ii).ToString();
+            uint32_t leftovers = maximum - results.size();
 
             // attempt getting as many matches now
-            auto matches = Query(source, details::resolve_buffer(source, alternatives)).find(regex);
+            auto matches = Query(source, details::resolve_buffer(source, alternatives)).find(regex, leftovers);
 
             // and insert into the total results
             results.insert(results.end(), matches.begin(), matches.end());
+
+            // stop if the total number of matches exceeds the maximum
+            if (results.size() > maximum) break;
         }
 
         // and construct the output array instance

@@ -31,6 +31,7 @@ namespace fsearch::exports {
         object.Set("line", match.line);
         object.Set("column", match.column);
         object.Set("length", match.length);
+        object.Set("content", match.content);
         object.Set("filePath", match.filePath);
 
         // and return the resulting object
@@ -66,15 +67,25 @@ namespace fsearch::details {
      * @param dict                                      Stream dictionary.
      */
     inline static std::shared_ptr<std::istream> resolve_buffer(const std::string &source, const Napi::Object &dict) {
-        // construct a file-stream if the source does not exist
-        if (!dict.Has(source)) return std::make_shared<std::ifstream>(source);
+        // construct a normal stream if the buffer exists
+        if (dict.Has(source)) {
+            // get the underlying NAPI buffer
+            auto buffer = dict.Get(source).As<Napi::Int8Array>();
+            auto pointer = buffer.Data();  // and the base pointer
 
-        // get the underlying NAPI buffer
-        auto buffer = dict.Get(source).As<Napi::Int8Array>();
-        auto pointer = buffer.Data();  // and the base pointer
+            // construct the string-stream to wrap
+            return std::make_shared<std::stringstream>(std::string(pointer, pointer + buffer.ByteLength()));
+        }
 
-        // construct the string-stream to wrap
-        return std::make_shared<std::stringstream>(std::string(pointer, pointer + buffer.ByteLength()));
+        // otherwise memory map the file we want to search
+        auto stream = std::ifstream(source);
+        auto buffer = std::make_shared<std::stringstream>();
+
+        // copy the buffer across
+        (*buffer) << stream.rdbuf();
+
+        // and return the underlying buffer to use
+        return buffer;
     }
 
 }  // namespace fsearch::details
