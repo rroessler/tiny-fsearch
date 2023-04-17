@@ -26,23 +26,9 @@ export class Win32 extends Abstract {
         if (ignoreCase) args.push('/i');
 
         // ensure we also have base details
-        args.push('/r', '/n', '/o', predicate, this.filePath);
+        args.push('/r', '/n', predicate, this.filePath);
 
         // and return the "findstr" arguments
         return args;
-    }
-
-    //  PRIVATE METHODS  //
-
-    /**
-     * Coordinates parsing "findstr" outputs in the format "line:content".
-     * @param match                                 Match to parse.
-     */
-    protected m_parse(match: string): Pick<Match.IResult, 'line' | 'content'> {
-        // pre-parse the grep output value
-        const [line, content] = match.match(/^(\d+):(.*)/) ?? ['-1', match];
-
-        // return the formatted result instance
-        return { line: parseInt(line, 10), content };
     }
 }

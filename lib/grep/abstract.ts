@@ -2,11 +2,11 @@
 import cp from 'child_process';
 
 /// FSearch Modules
-import { Query } from '../query';
 import { Match } from '../match';
+import { Search } from '../generic';
 
 /** Grep Shell Abstraction. */
-export abstract class Abstract {
+export abstract class Abstract extends Search {
     //  PROPERTIES  //
 
     /** The base command instance. */
@@ -15,22 +15,15 @@ export abstract class Abstract {
     /** Underlying shell instance to use. */
     protected abstract readonly m_shell?: string;
 
-    //  CONSTRUCTORS  //
-
-    /**
-     * Constructs a simplified shell handler for grepping.
-     * @param filePath                          File to grep.
-     * @param query                             Query instance.
-     */
-    constructor(readonly filePath: string, readonly query: Query) {}
-
     //  PUBLIC METHODS  //
 
     /** Formatter for grep arguments. */
     abstract format(): string[];
 
+    //  PRIVATE METHODS  //
+
     /** Coordinates running synchronous grepping. */
-    sync(): Match.IResult[] {
+    protected m_sync(): Match.IResult[] {
         // prepare the actual command
         const cmd = [this.command].concat(this.format()).join(' ');
 
@@ -42,7 +35,7 @@ export abstract class Abstract {
     }
 
     /** Coordinates running asynchronous grepping. */
-    stream(): Promise<Match.IResult[]> {
+    protected m_stream(): Promise<Match.IResult[]> {
         // prepare a queue for the incoming data chunks
         let data = Buffer.alloc(0);
 
@@ -59,13 +52,17 @@ export abstract class Abstract {
         });
     }
 
-    //  PRIVATE METHODS  //
-
     /**
      * Coordinates parsing a "grep" result.
      * @param match                                 Match to parse.
      */
-    protected abstract m_parse(match: string): Pick<Match.IResult, 'line' | 'content'>;
+    protected m_parse(match: string): Pick<Match.IResult, 'line' | 'content'> {
+        // pre-parse the grep output value
+        const [, line, content] = match.match(/^(\d+):(.*)/) ?? [, '-1', match];
+
+        // return the formatted result instance
+        return { line: parseInt(line, 10), content };
+    }
 
     /**
      * Helper method to transform queried data.
@@ -93,7 +90,7 @@ export abstract class Abstract {
                 const content = original.slice(0, offset) + rep + original.slice(offset + hit[0].length);
 
                 // and append on the currently formatted instance
-                results.push({ line, column: offset + 1, content, filePath: this.filePath });
+                results.push({ line, column: offset + 1, content });
             });
 
             // and ensure the accumulator is valid

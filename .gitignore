@@ -3,7 +3,11 @@ dist/
 typings/
 
 # Node Development
+.vscode/
 node_modules/
+
+# C++ Development
+build/
 
 # Platform Based Files
 .DS_Store

@@ -7,6 +7,5 @@ export namespace Match {
         line: number;
         column: number;
         content: string;
-        filePath: string;
     }
 }

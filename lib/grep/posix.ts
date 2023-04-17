@@ -33,18 +33,4 @@ export class POSIX extends Abstract {
         // and return the grep arguments
         return args;
     }
-
-    //  PRIVATE METHODS  //
-
-    /**
-     * Coordinates parsing "grep" outputs in the format "line:content".
-     * @param match                                 Match to parse.
-     */
-    protected m_parse(match: string): Pick<Match.IResult, 'line' | 'content'> {
-        // pre-parse the grep output value
-        const [, line, content] = match.match(/^(\d+):(.*)/) ?? [, '-1', match];
-
-        // return the formatted result instance
-        return { line: parseInt(line, 10), content };
-    }
 }

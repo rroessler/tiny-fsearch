@@ -1,7 +1,10 @@
 /// FSearch Modules
+import { Grep } from './grep';
+import { Match } from './match';
 import { Query } from './query';
 import { Source } from './source';
-import { Grep as G } from './grep';
+import { Search } from './generic';
+import { Binding } from './binding';
 
 /** File-Search Functionality. */
 export namespace FSearch {
@@ -10,56 +13,68 @@ export namespace FSearch {
     /** File-Search Options Interface */
     export type Options = Query.IOptions & (Source.IBuffer | Source.IFilePath);
 
-    /** Stream Handler Interface. */
-    export interface IStream {
-        callback: (match: any) => any;
-    }
+    /** Generic Search Abstraction. */
+    export type Generic = Search;
+    export const Generic = Search;
 
-    //  PUBLIC METHODS  //
-
-    /**
-     * Coordinates synchronous file-searching.
-     * @param predicate                             Query predicate.
-     * @param options                               Search options.
-     */
-    export const sync = (predicate: string | RegExp, options: Options) => {
-        // construct the search query
-        const query = new Query(predicate, options);
-        const source = new Source(options);
-
-        // coordinate some validation as necessary
-    };
+    /** Wrapped Handler Function. */
+    export type Executor<T extends Promise<Match.IResult[]> | Match.IResult[]> = (
+        predicate: string | RegExp,
+        options: Options
+    ) => T;
 }
 
-export namespace FSearch.Grep {
+export namespace FSearch.Sync {
     //  PUBLIC METHODS  //
 
     /**
-     * Coordinates grepping for search results synchronously.
-     * @param predicate                             Query predicate.
-     * @param options                               Search options.
+     * Wraps a given search factory for synchronous searching.
+     * @param factory                                   Factory to bind.
      */
-    export const sync = (predicate: string | RegExp, options: Options) => {
-        const source = new Source(options);
-        const query = new Query(predicate, options);
+    export const wrap =
+        (factory: new (...args: ConstructorParameters<typeof Generic>) => Generic): Executor<Match.IResult[]> =>
+        (predicate, options) => {
+            // construct the search query
+            const source = new Source(options);
+            const query = new Query(predicate, options);
 
-        // calculate the desired synchronous result
-        const result = new G(source.filePath, query).sync();
+            // calculate the desired result now
+            const result = new factory(source.filePath, query).sync();
 
-        // dispose of the source and return the result
-        return source.dispose(), result;
-    };
+            // remove the temporary file and run
+            return source.dispose(), result;
+        };
+
+    /** Coordinates a "grep" query. */
+    export const grep = wrap(Grep);
+
+    /** Coorindates a "native" query. */
+    export const query = wrap(Binding);
+}
+
+export namespace FSearch.Stream {
+    //  PUBLIC METHODS  //
 
     /**
-     * Coordinates grepping for search results asynchronously.
-     * @param predicate                             Query predicate.
-     * @param options                               Search options.
+     * Wraps a given search factory for streamed searching.
+     * @param factory                                   Factory to bind.
      */
-    export const stream = async (predicate: string | RegExp, options: Options & IStream) => {
-        const source = new Source(options);
-        const query = new Query(predicate, options);
+    export const wrap =
+        (
+            factory: new (...args: ConstructorParameters<typeof Generic>) => Generic
+        ): Executor<Promise<Match.IResult[]>> =>
+        async (predicate, options) => {
+            // construct the search query
+            const source = new Source(options);
+            const query = new Query(predicate, options);
 
-        // calculate the desired synchronous result and dispose of the source after
-        return new G(source.filePath, query).stream().finally(() => source.dispose());
-    };
+            // calculate the desired result now
+            return new factory(source.filePath, query).stream().finally(() => source.dispose());
+        };
+
+    /** Coordinates a "grep" query. */
+    export const grep = wrap(Grep);
+
+    // /** Coorindates a "native" query. */
+    // export const query = wrap(Binding);
 }
