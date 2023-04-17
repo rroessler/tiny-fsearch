@@ -13,6 +13,9 @@ export namespace FSearch {
     /** File-Search Options Interface */
     export type Options = Query.IOptions & (Source.IBuffer | Source.IFilePath);
 
+    /** Search Match Typing. */
+    export type Result = Match.IResult;
+
     /** Generic Search Abstraction. */
     export type Generic = Search;
     export const Generic = Search;
