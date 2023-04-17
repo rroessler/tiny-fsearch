@@ -1,9 +1,9 @@
-# ignoring NODE based items
+# Typescript Development
+dist/
+typings/
+
+# Node Development
 node_modules/
 
-# ignoring build outputs
-dist/
-build/
-
-# ignoring VSCODE items
-.vscode/
+# Platform Based Files
+.DS_Store

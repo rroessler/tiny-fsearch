@@ -2,12 +2,11 @@
     "compilerOptions": {
         "rootDir": "lib",
         "outDir": "dist",
-        "skipLibCheck": true,
-        "removeComments": true,
+        "lib": ["ESNext"],
         "declaration": true,
-        "declarationDir": "dist/types",
+        "declarationDir": "typings",
 
-        "target": "ESNext",
+        "target": "ES6",
         "module": "CommonJS",
         "moduleResolution": "node",
         "esModuleInterop": true,
@@ -15,15 +14,10 @@
         "alwaysStrict": true,
         "allowUnreachableCode": false,
         "noImplicitAny": true,
-        "strictNullChecks": true,
-
         "noImplicitOverride": true,
-        "noUnusedLocals": true,
-        "noUnusedParameters": true,
+        "noImplicitReturns": true,
 
-        "lib": ["ESNext"]
-    },
-
-    "include": ["lib/**/*"],
-    "exclude": ["dist/**/*", "node_modules/**/*"]
+        "strictNullChecks": true,
+        "strictPropertyInitialization": true
+    }
 }

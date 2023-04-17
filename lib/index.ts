@@ -1,68 +1,65 @@
-/// File-Search Modules
-import { Grep } from './grep';
-import { Binding } from './binding';
-import { IQueryMatch } from './types';
-import { IQueryOptions } from './options';
+/// FSearch Modules
+import { Query } from './query';
+import { Source } from './source';
+import { Grep as G } from './grep';
 
-/** File-Search Query Namespace. */
-export namespace fsearch {
-    /**************
-     *  TYPEDEFS  *
-     **************/
+/** File-Search Functionality. */
+export namespace FSearch {
+    //  TYPEDEFS  //
 
-    /** Query Options Interface. */
-    export interface IOptions extends IQueryOptions {}
+    /** File-Search Options Interface */
+    export type Options = Query.IOptions & (Source.IBuffer | Source.IFilePath);
 
-    /** Base Query Result. */
-    export interface IMatch extends IQueryMatch {}
+    /** Stream Handler Interface. */
+    export interface IStream {
+        callback: (match: any) => any;
+    }
 
-    /********************
-     *  PUBLIC METHODS  *
-     ********************/
+    //  PUBLIC METHODS  //
 
     /**
-     * Gets the associated synchronous query result.
-     * @param source                                Source to query.
-     * @param predicate                             Search predicate.
-     * @param options                               Query options.
+     * Coordinates synchronous file-searching.
+     * @param predicate                             Query predicate.
+     * @param options                               Search options.
      */
-    export const sync = (source: string, predicate: string | RegExp, options: Partial<IOptions> = {}) =>
-        Binding.sync(source, predicate, options);
+    export const sync = (predicate: string | RegExp, options: Options) => {
+        // construct the search query
+        const query = new Query(predicate, options);
+        const source = new Source(options);
 
-    /**
-     * Constructs an asynchrous query generator.
-     * @param source                                Source to query.
-     * @param predicate                             Search predicate.
-     * @param options                               Query options.
-     */
-    export const stream = (source: string, predicate: string | RegExp, options: Partial<IOptions> = {}) =>
-        Binding.stream(source, predicate, options);
+        // coordinate some validation as necessary
+    };
 }
 
-/** GREP Functionality. */
-export namespace fsearch.grep {
-    /********************
-     *  PUBLIC METHODS  *
-     ********************/
+export namespace FSearch.Grep {
+    //  PUBLIC METHODS  //
 
     /**
-     * Gets the associated synchronous query result.
-     * @param source                                Source to query.
-     * @param predicate                             Search predicate.
-     * @param options                               Query options.
+     * Coordinates grepping for search results synchronously.
+     * @param predicate                             Query predicate.
+     * @param options                               Search options.
      */
-    export const sync = (source: string, predicate: string | RegExp, options: Partial<IOptions> = {}) =>
-        Grep.sync(source, predicate, options);
+    export const sync = (predicate: string | RegExp, options: Options) => {
+        const source = new Source(options);
+        const query = new Query(predicate, options);
+
+        // calculate the desired synchronous result
+        const result = new G(source.filePath, query).sync();
+
+        // dispose of the source and return the result
+        return source.dispose(), result;
+    };
 
     /**
-     * Constructs an asynchrous query generator.
-     * @param source                                Source to query.
-     * @param predicate                             Search predicate.
-     * @param options                               Query options.
+     * Coordinates grepping for search results asynchronously.
+     * @param predicate                             Query predicate.
+     * @param options                               Search options.
      */
-    export const stream = (source: string, predicate: string | RegExp, options: Partial<IOptions> = {}) =>
-        Grep.stream(source, predicate, options);
+    export const stream = async (predicate: string | RegExp, options: Options & IStream) => {
+        const source = new Source(options);
+        const query = new Query(predicate, options);
+
+        // calculate the desired synchronous result and dispose of the source after
+        return new G(source.filePath, query).stream().finally(() => source.dispose());
+    };
 }
-
-/// Export the base namespace as a default.
-export default fsearch;
