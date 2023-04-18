@@ -25,7 +25,7 @@ export class POSIX extends Abstract {
         // push on the required details as necessary
         if (ignoreCase) args.push('-i');
         if (matchWholeWord) args.push('-w');
-        if (Number.isFinite(limit) && limit >= 0) args.push(`-m=${limit}`);
+        if (Number.isFinite(limit) && limit >= 0) args.push(`-m ${limit}`);
 
         // ensure we also have the base details
         args.push('-n', '-e', source, this.filePath, '||', ':;');

@@ -1,6 +1,6 @@
 {
     "name": "tiny-fsearch",
-    "version": "3.0.0",
+    "version": "3.0.2",
     "license": "MIT",
     "author": "Reuben Roessler",
     "description": "A small and versatile file-search library",
@@ -10,7 +10,8 @@
         "src/**/*",
         "dist/**/*",
         "tools/**/*",
-        "typings/**/*"
+        "typings/**/*",
+        "binding.gyp"
     ],
     "scripts": {
         "prepublishOnly": "run-s build",
