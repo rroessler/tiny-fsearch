@@ -84,10 +84,13 @@ export abstract class Abstract extends Search {
             hits.forEach((hit, ii) => {
                 // determine some details about the hit
                 const offset = hit.index ?? 0;
-                const rep = this.query.formatter(hit[0]);
 
-                // reconstruct the content if necessary to do so
-                const content = original.slice(0, offset) + rep + original.slice(offset + hit[0].length);
+                // and formulate the formatter query
+                const content = this.query.formatter(
+                    hit[0],
+                    original.slice(0, offset),
+                    original.slice(offset + hit[0].length)
+                );
 
                 // and append on the currently formatted instance
                 results.push({ line, column: offset + 1, content });

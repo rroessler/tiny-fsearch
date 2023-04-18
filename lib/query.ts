@@ -21,7 +21,7 @@ export class Query implements Required<Query.IOptions> {
     readonly ignoreCase: boolean = true;
 
     /** Coordinates formatting an matched value. */
-    readonly formatter: Query.Formatter = (_) => _;
+    readonly formatter: Query.Formatter = (v, l, r) => l + v + r;
 
     /** Ensures only whole-word matches are valid. */
     readonly matchWholeWord: boolean = false;
@@ -61,7 +61,7 @@ export namespace Query {
     //  TYPEDEFS  //
 
     /** Format Replacer Ty[ing.] */
-    export type Formatter = (match: string) => string;
+    export type Formatter = (match: string, before: string, after: string) => string;
 
     /** Options Interface for Search Queries. */
     export interface IOptions {
