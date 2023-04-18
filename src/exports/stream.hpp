@@ -19,24 +19,13 @@ namespace fsearch::exports {
 
     /// Stream-Worker for generating asynchronous search results.
     class Worker : public Napi::AsyncWorker {
-        //  TYPEDEFS  //
-
-        /// Worker Data Structure.
-        struct Data {
-            size_t line;
-            size_t column;
-            std::string value;
-            std::string content;
-        };
-
         //  PROPERTIES  //
 
-        double m_limit;                              // Maximum search limit.
-        Query* m_query;                              // Search query instance.
-        const Napi::FunctionReference& m_formatter;  // Help thread-safe function.
+        double m_limit;  // Maximum search limit.
+        Query m_query;   // Search query instance.
 
         /// The current list of results.
-        std::deque<Data> m_data = {};
+        std::deque<Match> m_matches = {};
 
        public:
         /// The promise we will be resolving with.
@@ -46,14 +35,14 @@ namespace fsearch::exports {
 
         /// @brief Constructs an asynchronous worker for streamed searches.
         /// @param env                                      Node environment.
-        /// @param query
-        /// @param limit
-        /// @param formatter
-        Worker(Napi::Env& env, Query* query, const double& limit, const Napi::FunctionReference& formatter)
+        /// @param filePath                                 File to search in.
+        /// @param predicate                                Search predicate.
+        /// @param ignoreCase                               Case sensitivity.
+        /// @param limit                                    Matches limit.
+        Worker(Napi::Env& env, const std::string& filePath, const std::string& predicate, const bool& ignoreCase, const double& limit)
             : Napi::AsyncWorker(env),
               m_limit(limit),
-              m_query(query),
-              m_formatter(formatter),
+              m_query(filePath, predicate, ignoreCase),
               deferred(Napi::Promise::Deferred::New(env)) {
         }
 
@@ -65,20 +54,20 @@ namespace fsearch::exports {
             std::string current = "";
 
             // iteratively read through all the available lines
-            for (size_t ln = 1, col = 1; std::getline(m_query->stream, current); ++ln, col = 1) {
+            for (size_t ln = 1, col = 1; std::getline(m_query.stream, current); ++ln, col = 1) {
                 // stop if we have reached our limit
-                if (m_data.size() > m_limit) break;
+                if (m_matches.size() > m_limit) break;
 
                 // pre-cache the current line content
                 const std::string content = current;
 
                 // attempting searching for matches
-                for (std::smatch sm; std::regex_search(current, sm, m_query->re);) {
+                for (std::smatch sm; std::regex_search(current, sm, m_query.re);) {
                     // determine the current column value
                     col += sm.prefix().str().size();
 
                     // and update the available matches
-                    m_data.push_back({ln, col, sm.str(), content});
+                    m_matches.push_back({ln, col, sm.str(), content});
 
                     // update the iterative values to be used
                     col += sm.str().size();
@@ -89,20 +78,7 @@ namespace fsearch::exports {
 
         /// @brief Handles completion after execution.
         void OnOK() {
-            // get the underlying environment value
-            auto env = Env();
-
-            // prepare the output matches value
-            auto matches = std::deque<Match>(m_data.size());
-
-            // convert all the current data into suitable matches
-            std::transform(m_data.cbegin(), m_data.cend(), matches.begin(), [env, this](Data data) {
-                auto formatted = details::format_content(env, data.value, data.column, data.content, m_formatter);
-                return Match{data.line, data.column, formatted};  // and re-construct as necessary
-            });
-
-            // finally resolve the resultant matches
-            deferred.Resolve(details::matches_to_array(env, matches));
+            deferred.Resolve(details::matches_to_array(Env(), m_matches));
         }
 
         /// @brief Handles error instances.
@@ -119,7 +95,7 @@ namespace fsearch::exports {
         auto env = info.Env();
 
         // ensure we have a valid number of arguments
-        if (info.Length() < 5) throw Napi::Error::New(env, "Invalid number of arguments");
+        if (info.Length() < 4) throw Napi::Error::New(env, "Invalid number of arguments");
 
         // deconstruct the valid number of arguments
         auto filePath = info[0].ToString().Utf8Value();
@@ -127,14 +103,8 @@ namespace fsearch::exports {
         auto ignoreCase = info[2].ToBoolean().Value();
         auto limit = info[3].ToNumber().DoubleValue();
 
-        // the formatter can be any value
-        auto formatter = info[4].IsFunction() ? Napi::Persistent(info[4].As<Napi::Function>()) : Napi::FunctionReference();
-
-        // construct the query instance
-        auto query = Query(filePath, predicate, ignoreCase);
-
         // construct a worker that will self-destruct when done
-        auto worker = new Worker(env, &query, limit, formatter);
+        auto worker = new Worker(env, filePath, predicate, ignoreCase, limit);
 
         // queue the worker for asynchronous execution
         worker->Queue();

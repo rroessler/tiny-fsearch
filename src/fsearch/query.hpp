@@ -20,9 +20,6 @@ namespace fsearch {
 
         //  CONSTRUCTORS  //
 
-        /// Remove the underlying query constructor.
-        Query() = delete;
-
         /// @brief Constructs a file-query instance.
         /// @param a_filePath                         File to search.
         /// @param a_predicate                        Search predicate.

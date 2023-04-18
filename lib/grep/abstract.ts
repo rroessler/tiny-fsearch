@@ -36,20 +36,15 @@ export abstract class Abstract extends Search {
 
     /** Coordinates running asynchronous grepping. */
     protected m_stream(): Promise<Match.IResult[]> {
-        // prepare a queue for the incoming data chunks
-        let data = Buffer.alloc(0);
+        // prepare the actual command
+        const cmd = [this.command].concat(this.format()).join(' ');
+
+        // prepare a callback handler for the promise instance
+        const callback = (resolve: Function, reject: Function) =>
+            cp.exec(cmd, (error, stdout) => (error ? reject(error) : resolve(this.m_transform(stdout))));
 
         // generate the child process to be used
-        const child = cp.spawn(this.command, this.format(), { shell: this.m_shell, stdio: 'pipe' });
-
-        // prepare a handler to push values to the queue
-        child.stdout?.on('data', (chunk) => (data = Buffer.concat([data, chunk])));
-
-        // stop when necessary to do so
-        return new Promise((resolve, reject) => {
-            child.on('error', reject); // handle clear rejections immediately
-            child.on('exit', () => resolve(this.m_transform(data)));
-        });
+        return new Promise(callback);
     }
 
     /**

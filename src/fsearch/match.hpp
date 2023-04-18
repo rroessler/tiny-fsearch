@@ -7,16 +7,17 @@
 
 /// File-Search Namespace.
 namespace fsearch {
-//  TYPEDEFS  //
+    //  TYPEDEFS  //
 
-/// Match Structure.
-struct Match {
-  //  PROPERTIES  //
+    /// Match Structure.
+    struct Match {
+        //  PROPERTIES  //
 
-  size_t line = 1;
-  size_t column = 1;
-  std::string content = "";
-};
+        size_t line;
+        size_t column;
+        std::string value;
+        std::string content;
+    };
 
 }  // namespace fsearch
 

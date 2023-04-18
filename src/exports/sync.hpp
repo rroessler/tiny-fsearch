@@ -23,16 +23,13 @@ namespace fsearch::exports {
         auto env = info.Env();
 
         // ensure we have a valid number of arguments
-        if (info.Length() < 5) throw Napi::Error::New(env, "Invalid number of arguments");
+        if (info.Length() < 4) throw Napi::Error::New(env, "Invalid number of arguments");
 
         // deconstruct the valid number of arguments
         auto filePath = info[0].ToString().Utf8Value();
         auto predicate = info[1].ToString().Utf8Value();
         auto ignoreCase = info[2].ToBoolean().Value();
         auto limit = info[3].ToNumber().DoubleValue();
-
-        // the formatter can be any value
-        auto formatter = info[4].IsFunction() ? Napi::Persistent(info[4].As<Napi::Function>()) : Napi::FunctionReference();
 
         // construct the query instance
         auto query = Query(filePath, predicate, ignoreCase);
@@ -56,11 +53,8 @@ namespace fsearch::exports {
                 // determine the current column value
                 col += sm.prefix().str().size();
 
-                // attempt formatting our value as necessary
-                std::string formatted = details::format_content(env, sm.str(), col - 1, current, formatter);
-
                 // emplace the new match instance
-                matches.push_back({ln, col, formatted});
+                matches.push_back({ln, col, sm.str(), content});
 
                 // update iterative values
                 current = sm.suffix().str();
