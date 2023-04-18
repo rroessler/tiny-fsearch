@@ -6,10 +6,17 @@
     "description": "A small and versatile file-search library",
     "main": "./dist/index.js",
     "types": "./typings/index.d.ts",
+    "files": [
+        "src/**/*",
+        "dist/**/*",
+        "tools/**/*",
+        "typings/**/*"
+    ],
     "scripts": {
+        "prepublishOnly": "run-s build",
         "build": "npm-run-all clean --parallel build:*",
         "build:ts": "tsc",
-        "dist": "run-p build dist:*",
+        "dist": "run-s build dist:*",
         "dist:gyp": "node-gyp configure && node-gyp build --jobs 17",
         "test": "ava --concurrency 1",
         "clean": "run-p clean:*",
