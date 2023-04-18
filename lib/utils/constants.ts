@@ -9,10 +9,16 @@ const rdint = (max: number, min: number = 0) => Math.floor(Math.random() * (max 
 
 //  PROPERTIES  //
 
-export const TEST_PREDICATE: string = 'hello';
 export const TEST_EMPTY_OUTPUT: number = 0;
 export const TEST_EXPECTED_SIZE: number = 1;
 export const TEST_LARGE_ITERS: number = 5;
+
+export const TEST_PREDICATE: string = 'hello';
+export const TEST_FORMATTER_VALUE = 'Goodbye';
+export const TEST_BUFFER: string = 'Hello, World!';
+export const TEST_FORMATTER_EXPECT: string = 'Goodbye, World!';
+
+export const TEST_FORMATTER = (_: string, b: string, a: string) => b + TEST_FORMATTER_VALUE + a;
 
 // pre-constructs a randomized large test instance
 export const TEST_LARGE_VALUE: { buffer: Buffer; expected: number } = (() => {

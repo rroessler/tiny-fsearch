@@ -3,6 +3,7 @@ import requirable from 'bindings';
 
 /// FSearch Modules
 import { Match } from '../match';
+import { Query } from '../query';
 import { Search } from '../generic';
 
 /** Node-Addon Wrapper Class. */
@@ -11,7 +12,8 @@ export class Binding extends Search {
 
     /** Formats the underlying binding arguments to be used. */
     private m_format(): Binding.Arguments {
-        return [this.filePath, this.query.predicate, this.query.ignoreCase, this.query.limit];
+        const { predicate, ignoreCase, limit, formatter } = this.query;
+        return [this.filePath, predicate, ignoreCase, limit, formatter];
     }
 
     /** Synchronous search implementation. */
@@ -21,11 +23,7 @@ export class Binding extends Search {
 
     /** Streamed search implementation. */
     protected async m_stream(): Promise<Match.IResult[]> {
-        // construct the underlying stream instance to be used
-        const generator = new (Binding.API().StreamGenerator)(...this.m_format());
-
-        // and recombine all the desired streamed results
-        return Promise.all(Array.from(generator)).then((results) => results.flat());
+        return Binding.API().stream(...this.m_format());
     }
 }
 
@@ -33,7 +31,13 @@ export namespace Binding {
     //  TYPEDEFS  //
 
     /** Binding Input Arguments. */
-    export type Arguments = [filePath: string, predicate: string, ignoreCase: boolean, maximum: number];
+    export type Arguments = [
+        filePath: string,
+        predicate: string,
+        ignoreCase: boolean,
+        maximum: number,
+        formatter?: Query.Formatter
+    ];
 
     /** Stream Generator Typing. */
     export interface IStreamGenerator {
@@ -43,7 +47,7 @@ export namespace Binding {
     /** Binding Exports Interface. */
     export interface IExports {
         sync(...args: Arguments): Match.IResult[];
-        StreamGenerator: new (...args: Arguments) => Generator<Promise<Match.IResult[]>, void>;
+        stream: (...args: Arguments) => Promise<Match.IResult[]>;
     }
 
     //  PUBLIC METHODS  //

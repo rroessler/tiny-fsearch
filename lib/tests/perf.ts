@@ -51,5 +51,5 @@ const measure = async (provider: IMeasurable, _: ExecutionContext) => {
 
 //  TEST RUNNERS  //
 
-test('Query Speed', async (_) => measure({ sync: FSearch.Sync.query, stream: FSearch.Stream.query }, _));
+// test('Query Speed', async (_) => measure({ sync: FSearch.Sync.query, stream: FSearch.Stream.query }, _));
 test('Grep Speed', async (_) => measure({ sync: FSearch.Sync.grep, stream: FSearch.Stream.grep }, _));

@@ -2,8 +2,8 @@
 #define FSEARCH_STREAM_HPP
 
 /// C++ Includes
+#include <algorithm>
 #include <deque>
-#include <memory>
 
 /// Napi Includes
 #include <napi.h>
@@ -17,167 +17,131 @@
 namespace fsearch::exports {
     //  IMPLEMENTATIONS  //
 
-    /// Generator for streamed value-matching.
-    struct Stream : public Napi::ObjectWrap<Stream> {
+    /// Stream-Worker for generating asynchronous search results.
+    class Worker : public Napi::AsyncWorker {
         //  TYPEDEFS  //
 
-        /// Stream-Worker for generating asynchronous search results.
-        class Worker : public Napi::AsyncWorker {
-            //  PROPERTIES  //
-
-            size_t m_ln = 1;   // Line number.
-            size_t m_col = 1;  // Column number.
-
-            std::regex m_re;                   // RegExp to use.
-            std::string m_content;             // Initial content value.
-            std::deque<Match> m_matches = {};  // The current list of results.
-
-           public:
-            /// The promise we will be resolving with.
-            Napi::Promise::Deferred deferred;
-
-            //  CONSTRUCTORS  //
-
-            Worker(Napi::Env& env, const size_t& line, const std::regex& re, const std::string& content)
-                : Napi::AsyncWorker(env),
-                  m_ln(line),
-                  m_re(re),
-                  m_content(content),
-                  deferred(Napi::Promise::Deferred::New(env)) {}
-
-            //  PUBLIC METHODS  //
-
-            /// @brief Handles attempting to match search results.
-            void Execute() {
-                // prepare the content iterator to be used
-                std::string current = m_content;
-
-                // attempting searching for matches
-                for (std::smatch sm; std::regex_search(current, sm, m_re);) {
-                    // determine the current column value
-                    m_col += sm.prefix().str().size();
-
-                    // emplace the new match instance
-                    m_matches.push_back({m_ln, m_col, m_content});
-
-                    // update the iterative values to be used
-                    m_col += sm.str().size();
-                    current = sm.suffix().str();
-                }
-            }
-
-            /// @brief Handles completion after execution.
-            void OnOK() {
-                deferred.Resolve(details::matches_to_array(Env(), m_matches));
-            }
-
-            /// @brief Handles error instances.
-            /// @param error                        Error to pass onwards.
-            void OnError(const Napi::Error& error) {
-                deferred.Reject(error.Value());
-            }
+        /// Worker Data Structure.
+        struct Data {
+            size_t line;
+            size_t column;
+            std::string value;
+            std::string content;
         };
 
-       private:
         //  PROPERTIES  //
 
-        double m_limit = 0;                        // Maximum search limit value.
-        std::shared_ptr<Query> m_query = nullptr;  // The underlying query instance.
+        double m_limit;                              // Maximum search limit.
+        Query* m_query;                              // Search query instance.
+        const Napi::FunctionReference& m_formatter;  // Help thread-safe function.
 
-        size_t m_line = 1;  // Current line-number.
-        double m_hits = 0;  // Total matches so far.
+        /// The current list of results.
+        std::deque<Data> m_data = {};
 
        public:
+        /// The promise we will be resolving with.
+        Napi::Promise::Deferred deferred;
+
         //  CONSTRUCTORS  //
 
-        /// @brief Constructs a streamed iterator for file-searching.
-        /// @param info                             Callback information.
-        Stream(const Napi::CallbackInfo& info) : Napi::ObjectWrap<Stream>(info) {
-            auto env = info.Env();  // get the current NAPI environment
-
-            // ensure we have a valid number of arguments
-            if (info.Length() < 4) throw Napi::Error::New(env, "Invalid number of arguments");
-
-            // deconstruct the valid number of arguments
-            auto filePath = info[0].ToString().Utf8Value();
-            auto predicate = info[1].ToString().Utf8Value();
-            auto ignoreCase = info[2].ToBoolean().Value();
-            m_limit = info[3].ToNumber().DoubleValue();
-
-            // construct the underlying query instance
-            m_query = std::make_shared<Query>(filePath, predicate, ignoreCase);
-        }
-
-        /// @brief Coordinates initializing streams for use in
-        /// @param env
-        /// @param exports
-        /// @return
-        static Napi::Object __init__(Napi::Env env, Napi::Object exports) {
-            // define the underlying constructor for Node to use
-            Napi::Function func = DefineClass(env, "StreamGenerator", {InstanceMethod(Napi::Symbol::WellKnown(env, "iterator"), &Stream::Iterator)});
-
-            // extend the exports object with this class factory
-            exports.Set("StreamGenerator", func);
-
-            // and return the mutated exports
-            return exports;
+        /// @brief Constructs an asynchronous worker for streamed searches.
+        /// @param env                                      Node environment.
+        /// @param query
+        /// @param limit
+        /// @param formatter
+        Worker(Napi::Env& env, Query* query, const double& limit, const Napi::FunctionReference& formatter)
+            : Napi::AsyncWorker(env),
+              m_limit(limit),
+              m_query(query),
+              m_formatter(formatter),
+              deferred(Napi::Promise::Deferred::New(env)) {
         }
 
         //  PUBLIC METHODS  //
 
-        /// @brief The constructor for iterators generating from this object.
-        /// @param info                             Callback information.
-        Napi::Value Iterator(const Napi::CallbackInfo& info) {
-            // get the current NAPI environment
-            auto env = info.Env();
+        /// @brief Handles attempting to match search results.
+        void Execute() {
+            // prepare the content iterator to be used
+            std::string current = "";
 
-            // make an iterable object instance
-            auto iterable = Napi::Object::New(env);
+            // iteratively read through all the available lines
+            for (size_t ln = 1, col = 1; std::getline(m_query->stream, current); ++ln, col = 1) {
+                // stop if we have reached our limit
+                if (m_data.size() > m_limit) break;
 
-            // construct the next handler
-            auto next = Napi::Function::New(env, [=](const Napi::CallbackInfo& info) {
-                // get the current environment value
-                auto env = info.Env();
-                std::string content;
+                // pre-cache the current line content
+                const std::string content = current;
 
-                // create the iterator result value
-                auto value = Napi::Object::New(env);
+                // attempting searching for matches
+                for (std::smatch sm; std::regex_search(current, sm, m_query->re);) {
+                    // determine the current column value
+                    col += sm.prefix().str().size();
 
-                // read the next available line now
-                auto incomplete = m_hits < m_limit && !m_query->stream.eof();
+                    // and update the available matches
+                    m_data.push_back({ln, col, sm.str(), content});
 
-                // attempt getting the next line to work on
-                if (incomplete) {
-                    // get the next available line to be used
-                    std::getline(m_query->stream, content);
-
-                    // construct a worker that will self-destruct when done
-                    auto worker = new Worker(env, m_line, m_query->re, content);
-
-                    // queue the worker for asynchronous execution
-                    worker->Queue();
-
-                    // append the current promise onto the value
-                    value.Set("value", worker->deferred.Promise());
-
-                    // update the current line number now
-                    ++m_line;
+                    // update the iterative values to be used
+                    col += sm.str().size();
+                    current = sm.suffix().str();
                 }
+            }
+        }
 
-                // set the current completion flag
-                value.Set("done", !incomplete);
+        /// @brief Handles completion after execution.
+        void OnOK() {
+            // get the underlying environment value
+            auto env = Env();
 
-                // can return the iterator value now
-                return value;
+            // prepare the output matches value
+            auto matches = std::deque<Match>(m_data.size());
+
+            // convert all the current data into suitable matches
+            std::transform(m_data.cbegin(), m_data.cend(), matches.begin(), [env, this](Data data) {
+                auto formatted = details::format_content(env, data.value, data.column, data.content, m_formatter);
+                return Match{data.line, data.column, formatted};  // and re-construct as necessary
             });
 
-            // ensure the handler is bound correctly
-            iterable["next"] = next.Get("bind").As<Napi::Function>().Call(next, {iterable});
+            // finally resolve the resultant matches
+            deferred.Resolve(details::matches_to_array(env, matches));
+        }
 
-            // finally return the resulting iterator instance
-            return iterable;
+        /// @brief Handles error instances.
+        /// @param error                        Error to pass onwards.
+        void OnError(const Napi::Error& error) {
+            deferred.Reject(error.Value());
         }
     };
+
+    //  PUBLIC METHODS  //
+
+    inline static Napi::Value stream(const Napi::CallbackInfo& info) {
+        // get the current NAPI environment
+        auto env = info.Env();
+
+        // ensure we have a valid number of arguments
+        if (info.Length() < 5) throw Napi::Error::New(env, "Invalid number of arguments");
+
+        // deconstruct the valid number of arguments
+        auto filePath = info[0].ToString().Utf8Value();
+        auto predicate = info[1].ToString().Utf8Value();
+        auto ignoreCase = info[2].ToBoolean().Value();
+        auto limit = info[3].ToNumber().DoubleValue();
+
+        // the formatter can be any value
+        auto formatter = info[4].IsFunction() ? Napi::Persistent(info[4].As<Napi::Function>()) : Napi::FunctionReference();
+
+        // construct the query instance
+        auto query = Query(filePath, predicate, ignoreCase);
+
+        // construct a worker that will self-destruct when done
+        auto worker = new Worker(env, &query, limit, formatter);
+
+        // queue the worker for asynchronous execution
+        worker->Queue();
+
+        // return the underlying promise instance
+        return worker->deferred.Promise();
+    }
 
 }  // namespace fsearch::exports
 

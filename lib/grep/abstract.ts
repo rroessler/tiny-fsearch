@@ -86,11 +86,9 @@ export abstract class Abstract extends Search {
                 const offset = hit.index ?? 0;
 
                 // and formulate the formatter query
-                const content = this.query.formatter(
-                    hit[0],
-                    original.slice(0, offset),
-                    original.slice(offset + hit[0].length)
-                );
+                const content =
+                    this.query.formatter?.(hit[0], original.slice(0, offset), original.slice(offset + hit[0].length)) ??
+                    original;
 
                 // and append on the currently formatted instance
                 results.push({ line, column: offset + 1, content });

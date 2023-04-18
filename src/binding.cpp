@@ -13,7 +13,7 @@ Napi::Object __init__(Napi::Env env, Napi::Object exports) {
     exports.Set("sync", Napi::Function::New(env, fsearch::exports::sync));
 
     // expose the stream generator
-    fsearch::exports::Stream::__init__(env, exports);
+    exports.Set("stream", Napi::Function::New(env, fsearch::exports::stream));
 
     // return the mutated exports value
     return exports;

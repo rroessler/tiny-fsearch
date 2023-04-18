@@ -2,7 +2,7 @@
 import { Struct } from './utils/structure';
 
 /** Search Query Wrapper. */
-export class Query implements Required<Query.IOptions> {
+export class Query implements Required<Omit<Query.IOptions, 'formatter'>> {
     //  PROPERTIES  //
 
     /** The raw regular-express source string. */
@@ -21,7 +21,7 @@ export class Query implements Required<Query.IOptions> {
     readonly ignoreCase: boolean = true;
 
     /** Coordinates formatting an matched value. */
-    readonly formatter: Query.Formatter = (v, l, r) => l + v + r;
+    readonly formatter?: Query.Formatter;
 
     /** Ensures only whole-word matches are valid. */
     readonly matchWholeWord: boolean = false;
