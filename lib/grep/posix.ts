@@ -28,7 +28,7 @@ export class POSIX extends Abstract {
         if (Number.isFinite(limit) && limit >= 0) args.push(`-m ${limit}`);
 
         // ensure we also have the base details
-        args.push('-n', '-e', source, this.filePath, '||', ':;');
+        args.push('-h', '-n', '-e', source, this.filePath, '||', ':;');
 
         // and return the grep arguments
         return args;
