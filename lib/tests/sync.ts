@@ -21,7 +21,7 @@ test(`Query - restricted with "${Constants.TEST_PREDICATE}"`, (_) => {
     // get all available results from grepping
     const results = FSearch.Sync.query(Constants.TEST_PREDICATE, {
         buffer: Constants.TEST_PREDICATE,
-        limit: Constants.TEST_EMPTY_OUTPUT
+        limit: Constants.TEST_EMPTY_OUTPUT,
     });
 
     // and ensure we have the correct length
@@ -42,7 +42,7 @@ test(`Grep - restricted with "${Constants.TEST_PREDICATE}"`, (_) => {
     // get all available results, with a restricted maximum
     const results = FSearch.Sync.grep(Constants.TEST_PREDICATE, {
         buffer: Constants.TEST_PREDICATE,
-        limit: Constants.TEST_EMPTY_OUTPUT
+        limit: Constants.TEST_EMPTY_OUTPUT,
     });
 
     // and ensure we have no values outputted

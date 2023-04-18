@@ -11,7 +11,7 @@
         "build:ts": "tsc",
         "dist": "run-p build dist:*",
         "dist:gyp": "node-gyp configure && node-gyp build --jobs 17",
-        "test": "ava",
+        "test": "ava --concurrency 1",
         "clean": "run-p clean:*",
         "clean:ts": "rimraf dist typings",
         "clean:gyp": "rimraf build"

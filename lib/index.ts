@@ -78,6 +78,6 @@ export namespace FSearch.Stream {
     /** Coordinates a "grep" query. */
     export const grep = wrap(Grep);
 
-    // /** Coorindates a "native" query. */
-    // export const query = wrap(Binding);
+    /** Coorindates a "native" query. */
+    export const query = wrap(Binding);
 }

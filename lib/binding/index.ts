@@ -21,8 +21,11 @@ export class Binding extends Search {
 
     /** Streamed search implementation. */
     protected async m_stream(): Promise<Match.IResult[]> {
-        // denote an error running this method
-        throw new Error('unimplemented');
+        // construct the underlying stream instance to be used
+        const generator = new (Binding.API().StreamGenerator)(...this.m_format());
+
+        // and recombine all the desired streamed results
+        return Promise.all(Array.from(generator)).then((results) => results.flat());
     }
 }
 
@@ -32,10 +35,15 @@ export namespace Binding {
     /** Binding Input Arguments. */
     export type Arguments = [filePath: string, predicate: string, ignoreCase: boolean, maximum: number];
 
+    /** Stream Generator Typing. */
+    export interface IStreamGenerator {
+        [Symbol.iterator]: Iterator<Promise<Match.IResult[]>>;
+    }
+
     /** Binding Exports Interface. */
     export interface IExports {
         sync(...args: Arguments): Match.IResult[];
-        stream: new (...args: Arguments) => Generator<Promise<Match.IResult>, void>;
+        StreamGenerator: new (...args: Arguments) => Generator<Promise<Match.IResult[]>, void>;
     }
 
     //  PUBLIC METHODS  //
